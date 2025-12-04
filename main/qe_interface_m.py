@@ -575,7 +575,7 @@ def elph_interpolate_bgw(elph_co, file_coeffs, Nkpoints_fine, Nbnds_fine):
     Nkpoints_coarse = np.shape(elph_co)[1]
     
     # nkpoints
-    elph_fine = np.zeros((nmodes_elph, Nkpoints_fine, Nbnds_fine, Nbnds_fine), dtype=np.complex)
+    elph_fine = np.zeros((nmodes_elph, Nkpoints_fine, Nbnds_fine, Nbnds_fine), dtype=complex)
     
     # reading coeffs file
     coeffs = np.zeros((Nkpoints_fine, Nbnds_co, Nbnds_fine), dtype=complex)
