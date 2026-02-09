@@ -1,6 +1,7 @@
 
 import numpy as np
 import sys
+import re 
 
 '''
     Usage: python visualize_forces.py scf_input_file forces_file flavor_forces output_file
@@ -10,6 +11,8 @@ import sys
     flavor_forces = 3 -> RPA_diag + Kernel
     
     this script will create a .axsf file with the forces to be read by xcrysden    
+
+    WARNING : only works with atomic coordinates in crystal coordinates
 '''
 
 file_scf_input = sys.argv[1]
@@ -17,35 +20,48 @@ file_forces = sys.argv[2]
 flavor_forces = int(sys.argv[3])
 output_file = sys.argv[4]
 
+bohr2angtrom = 0.529177210903
+
 def get_atoms_from_QE_file_0(file_scf_input):
     
     arq = open(file_scf_input, "r")
+
+    pattern = r'nat\s*=\s*(\d+)'
+    file_content = arq.read()
+    match = re.search(pattern, file_content)
+    if match:
+        Natoms = int(match.group(1))
+    arq.seek(0)  # Reset file pointer to beginning
     
+    CELL_LATT_str = []
     ATOMS = []
-    CELL_LATT = []
-    
+
     for line in arq:
         line_split = line.split()
         if len(line_split) > 0:
-            
-            if line_split[0] == "nat":
-                Natoms = int(line_split[2])
-                
+                            
             if line_split[0] == "CELL_PARAMETERS":
                 for i in range(3):
                     line_split = arq.readline().split()
-                    CELL_LATT.append(f"""{line_split[0]}   {line_split[1]}   {line_split[2]}""")
-            
+                    CELL_LATT_str.append(f"""{line_split[0]}   {line_split[1]}   {line_split[2]}  """)
+          
+    CELL_LAT = np.array([[float(x) for x in row.split()] for row in CELL_LATT_str], dtype=float)
+
+    arq.seek(0)  # Reset file pointer to beginning again
+    for line in arq:
+        line_split = line.split()
+        if len(line_split) > 0:
+
             if line_split[0] == "ATOMIC_POSITIONS":
                 for iatom in range(Natoms):
                     line_split = arq.readline().split()
-                    ATOMS.append(f"""{line_split[0]}   {line_split[1]}   {line_split[2]}   {line_split[3]}    """)
-    
-    ATOMS = np.array(ATOMS)
-    CELL_LATT = np.array(CELL_LATT)
-    ATOMS_cart =  CELL_LATT*ATOMS
+                    cryst_coord = np.array([float(line_split[1]), float(line_split[2]), float(line_split[3])])
+                    cart_coord = cryst_coord@CELL_LAT
+                    ATOMS.append(f"""{line_split[0]}   {cart_coord[0]}   {cart_coord[1]}   {cart_coord[2]}    """)
+ 
     arq.close()
-    return ATOMS_cart, CELL_LATT
+  
+    return ATOMS, CELL_LATT_str
 
 def read_excited_forces(excited_state_forces_file, flavor_forces):
     # flavor = 1 -> RPA_diag 
