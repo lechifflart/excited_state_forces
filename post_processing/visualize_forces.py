@@ -41,8 +41,11 @@ def get_atoms_from_QE_file_0(file_scf_input):
                     line_split = arq.readline().split()
                     ATOMS.append(f"""{line_split[0]}   {line_split[1]}   {line_split[2]}   {line_split[3]}    """)
     
+    ATOMS = np.array(ATOMS)
+    CELL_LATT = np.array(CELL_LATT)
+    ATOMS_cart =  CELL_LATT*ATOMS
     arq.close()
-    return ATOMS, CELL_LATT
+    return ATOMS_cart, CELL_LATT
 
 def read_excited_forces(excited_state_forces_file, flavor_forces):
     # flavor = 1 -> RPA_diag 
